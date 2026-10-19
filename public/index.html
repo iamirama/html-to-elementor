@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>مبدل صفحه وب به قالب Elementor</title>
+<style>
+  :root{
+    --ink:#1c1b19;
+    --paper:#fbf9f5;
+    --line:#d9d4c7;
+    --accent:#2d5c4a;
+    --accent-soft:#e6ede9;
+    --error:#8a2e1f;
+    --mono: "SFMono-Regular", Consolas, Menlo, monospace;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; min-height:100vh;
+    background:var(--paper); color:var(--ink);
+    font-family: "Vazirmatn", "Tahoma", sans-serif;
+    display:flex; justify-content:center; padding:48px 20px;
+  }
+  main{width:100%; max-width:640px;}
+  h1{
+    font-size:1.5rem; font-weight:700; margin:0 0 6px;
+    letter-spacing:-0.01em;
+  }
+  p.lede{color:#5c594f; margin:0 0 32px; line-height:1.7;}
+  .panel{
+    border:1px solid var(--line); border-radius:4px;
+    background:#fff; padding:24px;
+  }
+  label{display:block; font-size:0.85rem; color:#5c594f; margin-bottom:8px;}
+  .row{display:flex; gap:10px;}
+  input[type=url]{
+    flex:1; padding:12px 14px; border:1px solid var(--line); border-radius:3px;
+    font-size:0.95rem; background:var(--paper); color:var(--ink);
+  }
+  input[type=url]:focus{outline:2px solid var(--accent); outline-offset:1px;}
+  button{
+    padding:12px 22px; border:none; border-radius:3px;
+    background:var(--accent); color:#fff; font-size:0.95rem; cursor:pointer;
+    white-space:nowrap;
+  }
+  button:disabled{background:#9ba89f; cursor:progress;}
+  .status{margin-top:18px; font-size:0.9rem; line-height:1.8;}
+  .status.err{color:var(--error);}
+  .status.warn{color:#8a6a1f;}
+  .result{
+    margin-top:18px; padding:16px; border-radius:3px; background:var(--accent-soft);
+    display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
+  }
+  .result .meta{font-size:0.85rem; color:#3a4b43;}
+  .result a{
+    background:var(--accent); color:#fff; text-decoration:none;
+    padding:10px 18px; border-radius:3px; font-size:0.9rem;
+  }
+  ul.warnings{margin:10px 0 0; padding-inline-start:20px;}
+  footer{margin-top:28px; font-size:0.8rem; color:#938f80;}
+  code{font-family:var(--mono); background:#f0ede4; padding:1px 5px; border-radius:2px;}
+</style>
+</head>
+<body>
+<main>
+  <h1>مبدل صفحه وب به قالب Elementor</h1>
+  <p class="lede">آدرس یک صفحه عمومی را وارد کنید تا محتوای آن تحلیل و به یک فایل JSON قابل درون‌ریزی در
+    Elementor → Templates → Saved Templates → Import Templates تبدیل شود.</p>
+
+  <div class="panel">
+    <label for="url">آدرس صفحه (URL)</label>
+    <div class="row">
+      <input id="url" type="url" placeholder="https://example.com" required />
+      <button id="go">تبدیل</button>
+    </div>
+    <div id="status" class="status"></div>
+    <div id="result" class="result" hidden>
+      <div class="meta">
+        <div id="fileName"></div>
+        <div id="sourceUrl" style="color:#6b7a72;"></div>
+      </div>
+      <a id="downloadLink" download>دانلود JSON</a>
+    </div>
+  </div>
+
+  <footer>تصاویر به صورت لینک خارجی حفظ می‌شوند؛ پس از درون‌ریزی در المنتور، در صورت نیاز آن‌ها را در
+    کتابخانهٔ رسانه جایگزین کنید.</footer>
+</main>
+
+<script>
+  const urlInput = document.getElementById("url");
+  const goBtn = document.getElementById("go");
+  const statusEl = document.getElementById("status");
+  const resultEl = document.getElementById("result");
+  const fileNameEl = document.getElementById("fileName");
+  const sourceUrlEl = document.getElementById("sourceUrl");
+  const downloadLink = document.getElementById("downloadLink");
+
+  async function convert() {
+    const url = urlInput.value.trim();
+    if (!url) return;
+
+    resultEl.hidden = true;
+    statusEl.className = "status";
+    statusEl.textContent = "در حال واکشی و تحلیل صفحه…";
+    goBtn.disabled = true;
+
+    try {
+      const res = await fetch("/api/convert", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        statusEl.className = "status err";
+        statusEl.textContent = data.error || "خطای نامشخص.";
+        if (data.details) {
+          statusEl.textContent += " — " + data.details.join("; ");
+        }
+        return;
+      }
+
+      const blob = new Blob([JSON.stringify(data.template, null, 2)], {
+        type: "application/json",
+      });
+      const blobUrl = URL.createObjectURL(blob);
+
+      fileNameEl.textContent = data.fileName;
+      sourceUrlEl.textContent = data.sourceUrl;
+      downloadLink.href = blobUrl;
+      downloadLink.download = data.fileName;
+      resultEl.hidden = false;
+
+      if (data.warnings && data.warnings.length) {
+        statusEl.className = "status warn";
+        statusEl.innerHTML =
+          "تبدیل با چند هشدار انجام شد:<ul class='warnings'>" +
+          data.warnings.map((w) => `<li>${w}</li>`).join("") +
+          "</ul>";
+      } else {
+        statusEl.className = "status";
+        statusEl.textContent = "تبدیل با موفقیت انجام شد.";
+      }
+    } catch (err) {
+      statusEl.className = "status err";
+      statusEl.textContent = "خطا در ارتباط با سرور: " + err.message;
+    } finally {
+      goBtn.disabled = false;
+    }
+  }
+
+  goBtn.addEventListener("click", convert);
+  urlInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") convert();
+  });
+</script>
+</body>
+</html>
