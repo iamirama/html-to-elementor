@@ -1,0 +1,34 @@
+# وابستگی‌ها
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# متغیرهای محیطی و رمزها
+.env
+.env.local
+.env.*.local
+secrets.json
+
+# خروجی‌ها و فایل‌های موقت
+sample-output.json
+*.log
+*.tmp
+dist/
+build/
+coverage/
+
+# سیستم‌عامل
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ادیتورها
+.vscode/
+.idea/
+*.swp
+*~
+
+# فایل لیستینگ (اختیاری - اگر فقط برای خودت ساختی)
+files.txt
