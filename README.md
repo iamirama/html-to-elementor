@@ -93,3 +93,4 @@ npm start
 - پشتیبانی از حالت Legacy (`section` → `column` → `widget`) به‌عنوان یک گزینهٔ قابل‌انتخاب
   در فرانت‌اند، برای سازگاری با نسخه‌های قدیمی‌تر Elementor.
 # html-to-elementor
+# html-to-elementor
